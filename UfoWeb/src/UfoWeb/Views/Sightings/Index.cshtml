@@ -1,0 +1,38 @@
+﻿@model UfoWeb.Models.SightingsViewModel
+
+@{
+    ViewBag.Title = "Sightings";
+    Layout = "_Layout";
+}
+
+<h1>Sightings</h1>
+
+<table class="table">
+    <thead>
+    <tr>
+        <th>Date / Time</th>
+        <th>City</th>
+        <th>State</th>
+        <th>Country</th>
+        <th>Shape</th>
+        <th>Duration</th>
+        <th>Summary</th>
+        <th>Posted</th>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var sighting in Model.Sightings)
+    {
+        <tr>
+            <td>@sighting.Time.ToString("HH:mm dd/MM/yy")</td>
+            <td>@sighting.City</td>
+            <td>@sighting.State</td>
+            <td>@sighting.Country</td>
+            <td>@sighting.Shape</td>
+            <td>@sighting.Duration</td>
+            <td>@sighting.Summary</td>
+            <td>@sighting.Posted.ToString("dd/MM/yy")</td>
+        </tr>
+    }
+    </tbody>
+</table>

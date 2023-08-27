@@ -1,0 +1,108 @@
+# Copyright The OpenTelemetry Authors
+# SPDX-License-Identifier: Apache-2.0
+
+version: '3.9'
+x-default-logging: &logging
+  driver: "json-file"
+  options:
+    max-size: "5m"
+    max-file: "2"
+
+networks:
+  default:
+    name: opentelemetry-demo
+    driver: bridge
+
+services:
+  redis:
+    image: redis:7.2-alpine
+    ports:
+      - '6379:6379'
+
+  # ********************
+  # Telemetry Components
+  # ********************
+  # Jaeger
+  jaeger:
+    image: jaegertracing/all-in-one
+    container_name: jaeger
+    command:
+      - "--memory.max-traces"
+      - "10000"
+      - "--query.base-path"
+      - "/jaeger/ui"
+      - "--prometheus.server-url"
+      - "http://prometheus:9090"
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+    restart: unless-stopped
+    ports:
+      - "16686:16686"                    # Jaeger UI
+      - "4317"                           # OTLP gRPC default port
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - METRICS_STORAGE_TYPE=prometheus
+    logging: *logging
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:9.4.7
+    container_name: grafana
+    deploy:
+      resources:
+        limits:
+          memory: 100M
+    volumes:
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
+    ports:
+      - "3000:3000"
+    logging: *logging
+
+  # OpenTelemetry Collector
+  otelcol:
+    image: otel/opentelemetry-collector-contrib:0.82.0
+    container_name: otel-col
+    deploy:
+      resources:
+        limits:
+          memory: 125M
+    restart: unless-stopped
+    command: [ "--config=/etc/otelcol-config.yml", "--config=/etc/otelcol-observability.yml", "--config=/etc/otelcol-config-extras.yml" ]
+    volumes:
+      - ./otelcollector/otelcol-config.yml:/etc/otelcol-config.yml
+      - ./otelcollector/otelcol-observability.yml:/etc/otelcol-observability.yml
+      - ./otelcollector/otelcol-config-extras.yml:/etc/otelcol-config-extras.yml
+    ports:
+      - "4317"          # OTLP over gRPC receiver
+      - "4318:4318"     # OTLP over HTTP receiver
+      - "9464"          # Prometheus exporter
+      - "8888"          # metrics endpoint
+    depends_on:
+      - jaeger
+    logging: *logging
+
+  # Prometheus
+  prometheus:
+    image: quay.io/prometheus/prometheus:v2.43.0
+    container_name: prometheus
+    command:
+      - --web.console.templates=/etc/prometheus/consoles
+      - --web.console.libraries=/etc/prometheus/console_libraries
+      - --storage.tsdb.retention.time=1h
+      - --config.file=/etc/prometheus/prometheus-config.yaml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+      - --web.route-prefix=/
+      - --enable-feature=exemplar-storage
+    volumes:
+      - ./prometheus/prometheus-config.yaml:/etc/prometheus/prometheus-config.yaml
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+    # ports:
+    #   - "9090:9090"
+    logging: *logging

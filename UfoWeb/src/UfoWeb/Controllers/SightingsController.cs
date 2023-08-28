@@ -15,9 +15,9 @@ public class SightingsController : Controller
     }
 
     // GET
-    public async Task<IActionResult> Index([FromQuery]int page)
+    public async Task<IActionResult> Index([FromQuery]int page, CancellationToken cancellationToken)
     {
-        var sightings = await _dataHerbClient.GetSightings();
+        var sightings = await _dataHerbClient.GetSightings(cancellationToken);
         if (page > 0)
         {
             sightings = sightings.Skip(page * PageSize).Take(PageSize).ToList();

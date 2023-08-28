@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace UfoData;
 
-public class StringParser : IParser
+public partial class StringParser : IParser
 {
     private const int Time = 0;
     private const int City = 1;
@@ -26,7 +26,7 @@ public class StringParser : IParser
 
     public async Task<IList<Sighting>> Parse(Stream stream)
     {
-        var stopwatch = Stopwatch.StartNew();
+        var stopwatch = ValueStopwatch.StartNew();
         
         var list = new List<Sighting>();
         using var reader = new StreamReader(stream);
@@ -37,9 +37,9 @@ public class StringParser : IParser
             list.Add(sighting);
         }
         
-        stopwatch.Stop();
+        var elapsed = stopwatch.Stop();
         
-        _logger.LogInformation("Parsed CSV in {Seconds} seconds", stopwatch.Elapsed.TotalSeconds);
+        LogParseTime(elapsed.TotalSeconds);
 
         return list;
     }
@@ -83,4 +83,8 @@ public class StringParser : IParser
 
         return sighting;
     }
+
+    [LoggerMessage(1, LogLevel.Information, "Parsed CSV in {Seconds} seconds")]
+    partial void LogParseTime(double seconds);
+
 }

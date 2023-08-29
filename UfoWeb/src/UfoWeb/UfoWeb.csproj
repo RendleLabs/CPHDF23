@@ -8,10 +8,18 @@
 
   <ItemGroup>
     <ProjectReference Include="..\UfoData\UfoData.csproj" />
+    <ProjectReference Include="..\UfoDb\UfoDb.csproj" />
   </ItemGroup>
   
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="7.0.10" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <None Remove="Data\ufo.db" />
+    <Content Include="Data\ufo.db">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

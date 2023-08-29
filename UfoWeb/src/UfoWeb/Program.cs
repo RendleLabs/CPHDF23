@@ -1,5 +1,7 @@
+using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 using UfoData;
+using UfoDb;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,6 +9,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 builder.Services.AddSingleton<DataHerbClient>();
 builder.Services.AddTransient<IParser, StringParser>();
+
+builder.Services.AddDbContextPool<UfoContext>(optionsBuilder =>
+{
+    optionsBuilder.UseSqlite("Data Source=Data/ufo.db");
+    optionsBuilder.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+});
 
 if (builder.Configuration.GetConnectionString("Redis") is { Length: > 0 } redisConnectionString)
 {

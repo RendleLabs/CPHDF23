@@ -8,6 +8,10 @@ namespace UfoData;
 
 public partial class DataHerbClient
 {
+    private static readonly DistributedCacheEntryOptions CacheEntryOptions = new()
+    {
+        SlidingExpiration = TimeSpan.FromMinutes(30)
+    };
     private static readonly Action<ILogger, double, Exception?> LogDownloadTime =
         LoggerMessage.Define<double>(LogLevel.Information,
             1, "Downloaded CSV in {Seconds} seconds");
@@ -56,7 +60,7 @@ public partial class DataHerbClient
             Timestamp = DateTimeOffset.UtcNow
         };
         bytes = MessagePackSerializer.Serialize(cacheItem, cancellationToken: cancellationToken);
-        await _cache.SetAsync(CacheKey, bytes, cancellationToken);
+        await _cache.SetAsync(CacheKey, bytes, CacheEntryOptions, cancellationToken);
 
         return sightings;
     }

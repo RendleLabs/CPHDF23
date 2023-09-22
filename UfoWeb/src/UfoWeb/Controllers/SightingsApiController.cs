@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using UfoData;
 using UfoDb;
@@ -20,35 +21,52 @@ public class SightingsApiController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<SightingsResult>> Index([FromQuery]int page, CancellationToken cancellationToken)
     {
-        DbSighting[] dbSightings;
-        if (page > 0)
+        try
         {
-            dbSightings = await _context.Sightings
-                .Skip(PageSize * page)
-                .Take(PageSize)
-                .ToArrayAsync(cancellationToken: cancellationToken);
-        }
-        else
-        {
-            dbSightings = await _context.Sightings
-                .Take(PageSize)
-                .ToArrayAsync(cancellationToken: cancellationToken);
-        }
-
-        return new SightingsResult
-        {
-            Sightings = dbSightings.Select(d => new Sighting
+            DbSighting[] dbSightings;
+            if (page > 0)
             {
-                City = d.City,
-                Country = d.Country,
-                Duration = d.Duration,
-                Images = d.Images,
-                Shape = d.Shape,
-                State = d.State,
-                Posted = d.Posted,
-                Time = d.Time
-            }).ToArray(),
-            Page = page
-        };
+                dbSightings = await _context.Sightings
+                    .Skip(PageSize * page)
+                    .Take(PageSize)
+                    .ToArrayAsync(cancellationToken: cancellationToken);
+            }
+            else
+            {
+                dbSightings = await _context.Sightings
+                    .Take(PageSize)
+                    .ToArrayAsync(cancellationToken: cancellationToken);
+            }
+
+            return new SightingsResult
+            {
+                Sightings = dbSightings.Select(d => new Sighting
+                {
+                    City = d.City,
+                    Country = d.Country,
+                    Duration = d.Duration,
+                    Images = d.Images,
+                    Shape = d.Shape,
+                    State = d.State,
+                    Posted = d.Posted,
+                    Time = d.Time
+                }).ToArray(),
+                Page = page
+            };
+        }
+        catch (Exception ex)
+        {
+            if (Activity.Current is { } activity)
+            {
+                activity.AddEvent(new ActivityEvent("Exception", tags: new ActivityTagsCollection
+                {
+                    { "error.type", ex.GetType().Name },
+                    { "error.message", ex.Message },
+                    { "error.trace", ex.StackTrace }
+                }));
+            }
+
+            throw;
+        }
     }
 }

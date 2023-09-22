@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Diagnostics.Metrics;
 using System.IO.Pipelines;
 using System.Text;
 using Microsoft.Extensions.Logging;
@@ -7,6 +8,12 @@ namespace UfoData;
 
 public partial class StreamParser : IParser
 {
+    private static readonly Counter<long> ParsedByteCounter =
+        Instrumentation.Meter.CreateCounter<long>("parsed_bytes");
+    
+    private static readonly Counter<long> ParsedLineCounter =
+        Instrumentation.Meter.CreateCounter<long>("parsed_lines");
+    
     private const int Time = 0;
     private const int City = 1;
     private const int State = 2;
@@ -27,7 +34,7 @@ public partial class StreamParser : IParser
 
     public async Task<IList<Sighting>> Parse(Stream stream)
     {
-        var stopwatch = ValueStopwatch.StartNew();
+        using var activity = Instrumentation.ActivitySource.StartActivity();
         
         var list = new List<Sighting>();
 
@@ -37,6 +44,7 @@ public partial class StreamParser : IParser
         while (true)
         {
             var result = await pipe.ReadAsync();
+            ParsedByteCounter.Add(result.Buffer.Length);
             var position = Read(result.Buffer, ref isFirst, result.IsCompleted, list);
             
             if (result.IsCompleted) break;
@@ -106,6 +114,8 @@ public partial class StreamParser : IParser
             Posted = _dateParser.Parse(ReadNext(ref span)),
             Images = ReadNext(ref span),
         };
+        
+        ParsedLineCounter.Add(1);
 
         return sighting;
     }

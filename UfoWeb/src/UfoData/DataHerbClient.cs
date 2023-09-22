@@ -40,7 +40,13 @@ public partial class DataHerbClient
         if (bytes is { Length: > 0 })
         {
             var cached = MessagePackSerializer.Deserialize<SightingCacheItem>(bytes, cancellationToken: cancellationToken);
-            LogServedFromCache(stopwatch.Stop().TotalSeconds);
+            if (Activity.Current is { } activity)
+            {
+                activity.AddEvent(new ActivityEvent("ServedFromCache", tags: new ActivityTagsCollection
+                {
+                    { "total_seconds", stopwatch.Stop().TotalSeconds }
+                }));
+            }
             return cached.Sightings;
         }
         
